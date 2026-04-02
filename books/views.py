@@ -4,18 +4,26 @@ from .serializers import BookSerializer, BorrowRecordSerializer, RegisterSeriali
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
+from .permissions import IsAdminOrReadOnly
 
 # Create your views here.
 
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
 class BorrowRecordViewSet(viewsets.ModelViewSet):
     queryset = BorrowRecord.objects.all()
     serializer_class = BorrowRecordSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return BorrowRecord.objects.all()
+        return BorrowRecord.objects.filter(user=user)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -27,6 +35,7 @@ def register(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def borrow_book(request, book_id):
     user = request.user
     book = get_object_or_404(Book, id=book_id)
@@ -45,6 +54,7 @@ def borrow_book(request, book_id):
     return Response({'Message': 'Book borrowed succesfully'})
     
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def return_book(request, book_id):
     user = request.user
     book = get_object_or_404(Book, id=book_id)
