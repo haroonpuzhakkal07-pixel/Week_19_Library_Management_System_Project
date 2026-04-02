@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
 from .permissions import IsAdminOrReadOnly
+from rest_framework import filters
 
 # Create your views here.
 
@@ -14,6 +15,9 @@ class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    
+    filterset_fields = ['author', 'available']
+    search_fields = ['title', 'author']
 
 class BorrowRecordViewSet(viewsets.ModelViewSet):
     queryset = BorrowRecord.objects.all()
@@ -51,7 +55,11 @@ def borrow_book(request, book_id):
     # Mark Book Unavailable
     book.available = False
     book.save()
-    return Response({'Message': 'Book borrowed succesfully'})
+    return Response({
+        'status': 'success',
+        'message': 'Book borrowed successfully',
+        'book_id': book.id
+    })
     
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
